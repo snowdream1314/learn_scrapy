@@ -1,5 +1,14 @@
 _site
 .sass-cache
 
+# SQLite databases
+*.sqlite
 
+# Virtual environment
+venv
+
+#python
 .pyc
+
+#html
+.html

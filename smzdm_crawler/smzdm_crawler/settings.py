@@ -65,7 +65,8 @@ MONGODB_DB = "smzdm"
 # Configure item pipelines
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    'smzdm_crawler.pipelines.SmzdmCrawlerPipeline': 300,
+#     'smzdm_crawler.pipelines.dulplicate_pipeline.DulplicatesPipline': 200,
+    'smzdm_crawler.pipelines.db_pipeline.SmzdmCrawlerPipeline': 300,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
