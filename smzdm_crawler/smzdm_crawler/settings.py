@@ -18,6 +18,9 @@ MONGODB_DOMAIN = "localhost"
 MONGODB_PORT = 27017
 MONGODB_DB = "smzdm"
 
+REDIS_DOMAIN = "localhost"
+REDIS_PORT = 6379
+
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'smzdm_crawler (+http://www.yourdomain.com)'
 
