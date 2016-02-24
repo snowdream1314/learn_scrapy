@@ -33,7 +33,7 @@ class SmzdmCrawlerPipeline(object):
         self.db = self.client[self.mongodb_db]
         
         self.server = redis.Redis(self.redis_domian, self.redis_port)
-        self.redis_key = spider.name
+        self.redis_key = spider.name + "fx_items"
     
     def close_spider(self, spider):
         self.client.close()

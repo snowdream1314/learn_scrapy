@@ -13,4 +13,13 @@ class SmzdmCrawlerItem(Item):
     # name = scrapy.Field()
     name = Field()
     id = Field()
+    publish_time = Field()
+    crawl_time = Field()
+    buy_link = Field()
+    image_link = Field()
+    worthy_num = Field()
+    unworthy_num = Field()
+    fav_num = Field()
+    comment_num = Field()
+    
     pass
