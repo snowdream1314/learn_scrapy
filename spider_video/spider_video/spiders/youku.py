@@ -105,6 +105,51 @@ class youku_video_spider(Spider):
                 item_link = list.find("div", {"class":"p-link"}).find("a").attrs['href']
                 
                 item_selector = load_content(item_link, method='GET')
+                if item_selector is None: return
+                
+                item_showInfo = item_selector.find("div", {"class":"showInfo poster_w yk-interact"})
+                
+                #播放链接,视频id
+                show_link = item_showInfo.find("div", {"class":"showInfo_top"}).find("ul", {"class":"baseinfo"}).find("li", {"class":"link"}).find("a").attrs['href']
+                video_id = show_link.split('from=')[-1].split('.')[-1]
+                print "video_id is : %s" % video_id
+                
+                #图片链接
+                img_link = item_showInfo.find("ul", {"class":"baseinfo"}).find("li", {"class":"thumb"}).find("img").attrs['src']
+                
+                #视频画质
+                video_quality = item_showInfo.find("ul", {"class":"baseinfo"}).find("li", {"class":"ishd"}).find("span").attrs['class'].split('__')[-1]
+                print "quality is : %s" % video_quality
+                
+                #视频别名
+                video_alias = item_showInfo.find("ul", {"class":"baseinfo"}).find("span", {"class":"alias"})
+                if video_alias is not None:
+                    video_alias = video_alias.attrs['title']
+                else:
+                    video_alias = ''
+                print "video_alias is : %s" % video_alias
+                
+                #视频时长
+                video_duration = item_showInfo.find("ul", {"class":"baseinfo"}).find("span", {"class":"duration"}) 
+                if video_duration is not None:
+                    video_duration = video_duration.get_text().replace("\n", "").replace("\t", "").replace("\r", "").strip()
+                else:
+                    video_duration = ''
+                print "video_duration is : %s" % video_duration
+                
+                #上映时间和优酷上映时间
+#                 show_time = item_showInfo.find("ul", {"class":"baseinfo"}).findAll("span", {"class":"pub"})                                                                                                
+                
+                #地区和类型
+                video_area = item_showInfo.find("ul", {"class":"baseinfo"}).find("span", {"class":"area"}).find("a").get_text()
+                video_type = item_showInfo.find("ul", {"class":"baseinfo"}).find("span", {"class":"type"}).attrs['title']
+                print video_area, video_type
+                
+                #导演和主演
+                video_director = item_showInfo.find("ul", {"class":"baseinfo"}).find("span", {"class":"director"}).attrs['title']
+                video_actors = item_showInfo.find("ul", {"class":"baseinfo"}).find("span", {"class":"actor"}).attrs['title']
+                print "director is : %s" % video_director
+                print "actors : %s" % video_actors
                 
                 videos = db_video.query("select * from cv_video_album where va_video_id=%s", item_id)
                 if len(videos) == 0:
@@ -120,7 +165,7 @@ class youku_video_spider(Spider):
                 next_link = next_page.attrs['href']
                 source_url = "http://www.youku.com" + str(next_link)
             else:
-                print "crawled over,category_id is %s:" % category_id
+                print "crawled over,category_id is : %s" % category_id
                 return
                 
         
