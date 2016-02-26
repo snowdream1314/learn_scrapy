@@ -248,7 +248,8 @@ class youku_video_spider(Spider):
                     db_video.insert("cv_video_detail_msg", cv_category_id=category_id, cv_video_name=video_name, cv_video_id=video_id, cv_played_count=played_count, cv_video_desc=video_desc,
                                     cv_video_link=video_link, cv_video_rate=video_rating, cv_video_alias=video_alias, cv_video_area=video_area, cv_video_type=video_type, cv_video_director=video_director,
                                     cv_video_actors=video_actors, cv_comment_num=comment_num, cv_support_num=support_num, cv_update_schedule=update_schedule, cv_video_img=img_link, cv_video_auth=authority,
-                                    cv_show_link=show_link, cv_douban_rate=score_db, cv_update_status=update_status, cv_video_duration=video_duration, cv_video_TV=video_TV, cv_video_agefor=video_agefor)
+                                    cv_show_link=show_link, cv_douban_rate=score_db, cv_update_status=update_status, cv_video_duration=video_duration, cv_video_TV=video_TV, cv_video_agefor=video_agefor,
+                                    cv_show_time=show_time, cv_yk_showtime=yk_showtime)
                     print "insert successfully"
                 else:
                     print "video already exists"
