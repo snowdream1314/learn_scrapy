@@ -44,13 +44,13 @@ class youku_video_spider(Spider):
             category_name = source['c_name']
             category_href = source['c_href']
             print category_name
-#             if category_id == 2:
-#                 self.parseCo13(category_id, category_name, category_href)
-            #分为两类不同结构
-            if category_id in [2, 4, 6, 8, 12, 14]:
-                if category_id == 2: continue
-#                 if category_id == 4: continue
+            if category_id == 8:
                 self.parseCo13(category_id, category_name, category_href)
+            #分为两类不同结构
+#             if category_id in [2, 4, 6, 8, 12, 14]:
+#                 if category_id == 2: continue
+#                 if category_id == 4: continue
+#                 self.parseCo13(category_id, category_name, category_href)
 #             else:
 #                 self.parseCo14(category_id, category_name, category_href)
                 
@@ -164,19 +164,37 @@ class youku_video_spider(Spider):
                 print video_area, video_type
                 
                 #导演和主演
-                video_director = item_showInfo.find("span", {"class":"director"}).find("a")
-                if video_director is not None:
-                    video_director = video_director.get_text()
+                video_director = item_showInfo.find("span", {"class":"director"})
+                if video_director is None:
+                    video_director = item_showInfo.find("span", {"class":"host"})
+                if video_director is not None and video_director.find("a") is not None:
+                    video_director = video_director.find("a").get_text()
                 else:
+#                     if list.find("span", {"class":"p-actor"}) is not None:
+#                         video_director = list.find("span", {"class":"p-actor"}).find("a").get_text()
+#                     else:
                     video_director = ''
-                video_actors = item_showInfo.find("span", {"class":"actor"}).find("a")
-                if video_actors is not None:
-                    video_actors = item_showInfo.find("span", {"class":"actor"}).attrs['title']
+                video_actors = item_showInfo.find("span", {"class":"actor"})
+                if video_actors is not None and video_actors.find("a") is not None:
+                    video_actors = video_actors.attrs['title']
                 else:
                     video_actors = ''
                 print "director is : %s" % video_director
                 print "actors : %s" % video_actors
                 
+                #动漫的适用年龄
+                video_agefor = ''
+                if category_id == 8:
+                    video_agefor = item_showInfo.find("span", {"class":"actor"}).get_text().split(":")[-1].replace("\n", "").replace("\t", "").replace("\r", "").strip()
+                    print "video_agefor is : %s" % video_agefor
+                    
+                #播出频道
+                video_TV = item_showInfo.find("span", {"class":"broadcast"})
+                if video_TV is not None:
+                    video_TV = video_TV.find("a").get_text()
+                else:
+                    video_TV = ''
+                    
                 #总播放量、评论数量、'顶'数量
                 played_count = item_basedata.find("span", {"class":"play"}).get_text().split(":")[-1].strip()
                 comment_num = item_basedata.find("span", {"class":"comment"}).find("em", {"class":"num"}).get_text().strip()
@@ -214,7 +232,7 @@ class youku_video_spider(Spider):
                     db_video.insert("cv_video_detail_msg", cv_category_id=category_id, cv_video_name=video_name, cv_video_id=video_id, cv_played_count=played_count, cv_video_desc=video_desc,
                                     cv_video_link=video_link, cv_video_rate=video_rating, cv_video_alias=video_alias, cv_video_area=video_area, cv_video_type=video_type, cv_video_director=video_director,
                                     cv_video_actors=video_actors, cv_comment_num=comment_num, cv_support_num=support_num, cv_update_schedule=update_schedule, cv_video_img=img_link, cv_video_auth=authority,
-                                    cv_show_link=show_link, cv_douban_rate=score_db, cv_update_status=update_status, cv_video_duration=video_duration)
+                                    cv_show_link=show_link, cv_douban_rate=score_db, cv_update_status=update_status, cv_video_duration=video_duration, cv_video_TV=video_TV, cv_video_agefor=video_agefor)
                     print "insert successfully"
                 else:
                     print "video already exists"
