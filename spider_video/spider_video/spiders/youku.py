@@ -158,11 +158,11 @@ class youku_video_spider(Spider):
                 #上映时间和优酷上映时间
                 time_items = item_showInfo.findAll("span", {"class":"pub"}) 
                 if len(time_items) == 1:                                                                                               
-                    show_time = time_items[0].get_text().split(":").replace("\n", "").replace("\t", "").replace("\r", "").strip()
+                    show_time = time_items[0].get_text().split(":")[-1].replace("\n", "").replace("\t", "").replace("\r", "").strip()
                     yk_showtime = ''
                 elif len(time_items) == 2:   
-                    show_time = time_items[0].get_text().split(":").replace("\n", "").replace("\t", "").replace("\r", "").strip()
-                    yk_showtime = time_items[1].get_text().split(":").replace("\n", "").replace("\t", "").replace("\r", "").strip() 
+                    show_time = time_items[0].get_text().split(":")[-1].replace("\n", "").replace("\t", "").replace("\r", "").strip()
+                    yk_showtime = time_items[1].get_text().split(":")[-1].replace("\n", "").replace("\t", "").replace("\r", "").strip() 
                 else:
                     show_time = ''
                     yk_showtime = ''
