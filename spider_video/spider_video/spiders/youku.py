@@ -156,7 +156,18 @@ class youku_video_spider(Spider):
                 print "video_duration is : %s" % video_duration
                 
                 #上映时间和优酷上映时间
-#                 show_time = item_showInfo.find("ul", {"class":"baseinfo"}).findAll("span", {"class":"pub"})                                                                                                
+                time_items = item_showInfo.findAll("span", {"class":"pub"}) 
+                if len(time_items) == 1:                                                                                               
+                    show_time = time_items[0].get_text().split(":").replace("\n", "").replace("\t", "").replace("\r", "").strip()
+                    yk_showtime = ''
+                elif len(time_items) == 2:   
+                    show_time = time_items[0].get_text().split(":").replace("\n", "").replace("\t", "").replace("\r", "").strip()
+                    yk_showtime = time_items[1].get_text().split(":").replace("\n", "").replace("\t", "").replace("\r", "").strip() 
+                else:
+                    show_time = ''
+                    yk_showtime = ''
+                print "show_time is : %s" % show_time
+                print "yk_showtime is : %s" % yk_showtime
                 
                 #地区和类型
                 video_area = item_showInfo.find("span", {"class":"area"}).find("a").get_text()
@@ -187,6 +198,11 @@ class youku_video_spider(Spider):
                 if category_id == 8:
                     video_agefor = item_showInfo.find("span", {"class":"actor"}).get_text().split(":")[-1].replace("\n", "").replace("\t", "").replace("\r", "").strip()
                     print "video_agefor is : %s" % video_agefor
+                    video_actors_items = item_showInfo.findAll("li", {"class":"row1"})
+                    for video_actors_item in video_actors_items:
+                        if video_actors_item.find("span", {"class":"type"}) is not None and video_actors_item.find("span", {"class":"type"}).find("a") is not None:
+                            video_actors = video_actors_item.find("span").attrs['title']
+                            print "actors : %s" % video_actors
                     
                 #播出频道
                 video_TV = item_showInfo.find("span", {"class":"broadcast"})
