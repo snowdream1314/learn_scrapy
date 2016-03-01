@@ -44,15 +44,18 @@ class youku_video_spider(Spider):
             category_name = source['c_name']
             category_href = source['c_href']
             print category_name
-            if category_id == 10:
-                self.parseCol4(category_id, category_name, category_href)
-            #分为两类不同结构
-            if category_id in [2, 4, 6, 8, 12, 14]:
-                if category_id == 2: continue
-                if category_id == 4: continue
-                if category_id == 6: continue
-                if category_id == 8: continue
+            
+#             db_video.execute("alter table cv_video_detail_msg_copy add key%s varchar(300)" %category_id )
+            if category_id == 2:
                 self.parseCol3(category_id, category_name, category_href)
+            #分为两类不同结构
+#             if category_id in [2, 4, 6, 8, 12, 14]:
+#                 if category_id == 2: continue
+#                 if category_id == 4: continue
+#                 if category_id == 6: continue
+#                 if category_id == 8: continue
+#                 if category_id == 12: continue
+#                 self.parseCol3(category_id, category_name, category_href)
 #             else:
 #                 self.parseCol4(category_id, category_name, category_href)
                 
@@ -61,7 +64,8 @@ class youku_video_spider(Spider):
         print "parseCol3"
         
         source_url = category_href
-#         source_url = "http://www.youku.com/v_olist/c_100_g__a__sg__mt__lg__q__s_1_r_0_u_0_pt_0_av_0_ag_0_sg__pr__h__d_1_p_13.html"
+#         if category_id == 14 :
+#             source_url = "http://www.youku.com/v_olist/c_84_g__a__sg__mt__lg__q__s_1_r_0_u_0_pt_0_av_0_ag_0_sg__pr__h__d_1_p_24.html"
         while 1:
              
             print source_url
@@ -107,7 +111,7 @@ class youku_video_spider(Spider):
                 print "----------------------------------" 
                 print ''   
                 #评分
-                video_rating = list.find("div", {"class":"p-thumb-tagrb"}).find("span", {"class":"p-rating"}).get_text().strip()
+                video_rating = int (list.find("div", {"class":"p-thumb-tagrb"}).find("span", {"class":"p-rating"}).get_text().replace(".", "").strip())
                  
                 #资源链接
                 video_link = list.find("div", {"class":"p-link"}).find("a").attrs['href']
@@ -132,7 +136,7 @@ class youku_video_spider(Spider):
                 #豆瓣评分
                 score_db = item_selector.find("div", {"class":"showInfo poster_w yk-interact"}).find("div", {"class":"score_db score_db_btn"})
                 if score_db is not None:
-                    score_db = score_db.find("span").get_text()
+                    score_db = int (score_db.find("span").get_text().replace(".", ""))
                 else:
                     score_db = ''
                 #图片链接
@@ -173,9 +177,9 @@ class youku_video_spider(Spider):
                 print "yk_showtime is : %s" % yk_showtime
                  
                 #地区和类型
-                video_area = item_showInfo.find("span", {"class":"area"}).find("a")
-                if video_area is not None:
-                    video_area = video_area.get_text()
+                video_area = item_showInfo.find("span", {"class":"area"})
+                if video_area is not None and video_area.find("a") is not None:
+                    video_area = video_area.find("a").get_text()
                 else:
                     video_area = ''
                 video_type = item_showInfo.find("span", {"class":"type"})
@@ -201,9 +205,11 @@ class youku_video_spider(Spider):
                     video_director = video_area
                     video_area = ''
                 if category_id == 14:
-                    video_director = item_showInfo.find("li", {"class":"row1"})
+                    video_director = item_showInfo.find("li", {"class":"row1", "style":None})
                     if video_director is not None and video_director.find("a") is not None:
                         video_director = video_director.find("a").get_text()
+                    else:
+                        video_director = ''
                      
                 video_actors = item_showInfo.find("span", {"class":"actor"})
                 if video_actors is not None and video_actors.find("a") is not None:
@@ -232,19 +238,23 @@ class youku_video_spider(Spider):
                     video_TV = ''
                      
                 #总播放量、评论数量、'顶'数量
-                played_count = item_basedata.find("span", {"class":"play"}).get_text().split(":")[-1].strip()
-                comment_num = item_basedata.find("span", {"class":"comment"}).find("em", {"class":"num"}).get_text().strip()
-                support_num = item_basedata.find("span", {"class":"increm"}).get_text().split(":")[-1].strip()
+                played_count = int (item_basedata.find("span", {"class":"play"}).get_text().split(":")[-1].replace(",","").strip())
+                comment_num = int (item_basedata.find("span", {"class":"comment"}).find("em", {"class":"num"}).get_text().replace(",","").strip())
+                support_num = int (item_basedata.find("span", {"class":"increm"}).get_text().split(":")[-1].replace(",","").strip())
                 print "played_count is : %s" % played_count
                 print "comment_num is : %s" % comment_num
                 print "support_num is : %s" % support_num
                  
                 #更新状态
                 update_schedule = item_basenotice.get_text().replace("\n", "").replace("\t", "").replace("\r", "").strip()
-                if len(update_schedule) > 10:
+                if u"更新" in update_schedule:
                     update_status = 0
                 else:
                     update_status = 1
+#                 if len(update_schedule) > 10:
+#                     update_status = 0
+#                 else:
+#                     update_status = 1
                 print "update_schedule is : %s " % update_schedule
                  
                 #视频简介
@@ -259,13 +269,23 @@ class youku_video_spider(Spider):
                 else:
                     video_desc = ''
                 print "video_desc is: %s" % (video_desc[:40])
+                
+                
+                #分集剧情，动态改变表的结构，不可取！
+#                 episodes = item_selector.find("div", {"class":"box nBox"}).find("div", {"class":"linkpanel"}).findAll("a", {"data-from":True}) 
+#                 for episode in episodes:
+#                     episode_href = episode.attrs['href'] 
+#                     print "episode_href is : %s" % episode_href
+#                     episode_text = episode.get_text()  
+#                     db_video.execute("alter table cv_video_detail_msg add episode%s varchar(300)" %episode_text )
+#                     print "update cv_video_detail_msg set episode%s=%s where cv_video_id=%s" %(episode_text, episode_href, video_id)
+#                     db_video.execute("update cv_video_detail_msg set episode1=%s where cv_video_id=%s", episode_href, video_id)
                     
-                 
 #                 videos = db_video.query("select * from cv_video_album where va_video_id=%s", item_id)
-                videos = db_video.query("select * from cv_video_detail_msg where cv_video_id=%s", video_id)
+                videos = db_video.query("select * from cv_video_detail_msg_copy where cv_video_id=%s", video_id)
                 if len(videos) == 0:
 #                     db_video.insert("cv_video_album", va_category_id=category_id, va_video_id=item_id, va_img_link=img_link, va_name=item_name, va_played_num=played_num, va_video_actor=actor, va_actor_link=actor_link, va_video_link=item_link, va_update_status=update_status, va_video_rate=rating, va_authority=authority )
-                    db_video.insert("cv_video_detail_msg", cv_category_id=category_id, cv_video_name=video_name, cv_video_id=video_id, cv_played_count=played_count, cv_video_desc=video_desc,
+                    db_video.insert("cv_video_detail_msg_copy", cv_category_id=category_id, cv_video_name=video_name, cv_video_id=video_id, cv_played_count=played_count, cv_video_desc=video_desc,
                                     cv_video_link=video_link, cv_video_rate=video_rating, cv_video_alias=video_alias, cv_video_area=video_area, cv_video_type=video_type, cv_video_director=video_director,
                                     cv_video_actors=video_actors, cv_comment_num=comment_num, cv_support_num=support_num, cv_update_schedule=update_schedule, cv_video_img=img_link, cv_video_auth=authority,
                                     cv_show_link=show_link, cv_douban_rate=score_db, cv_update_status=update_status, cv_video_duration=video_duration, cv_video_TV=video_TV, cv_video_agefor=video_agefor,
@@ -285,10 +305,10 @@ class youku_video_spider(Spider):
                 print "crawled over,category_id is : %s" % category_id
                 return
                 
-        
-        
         pass
     
+    
+#     def parseEpisodes(self,):
     
     def parseCol4(self, category_id, category_name, category_href):
         
