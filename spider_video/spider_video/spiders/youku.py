@@ -16,6 +16,7 @@ class youku_video_spider(Spider):
         
 #         self.parse_category()
         self.parse_item()
+        self.parseEpisodes()
         
     def parse_category(self):
         print "parse_category"
@@ -45,20 +46,45 @@ class youku_video_spider(Spider):
             category_href = source['c_href']
             print category_name
             
-#             db_video.execute("alter table cv_video_detail_msg_copy add key%s varchar(300)" %category_id )
-            if category_id == 2:
-                self.parseCol3(category_id, category_name, category_href)
+#             if category_id == 2:
+#                 self.parseCol3(category_id, category_name, category_href)
             #分为两类不同结构
-#             if category_id in [2, 4, 6, 8, 12, 14]:
+            if category_id in [2, 4, 6, 8, 12, 14]:
 #                 if category_id == 2: continue
 #                 if category_id == 4: continue
 #                 if category_id == 6: continue
 #                 if category_id == 8: continue
 #                 if category_id == 12: continue
-#                 self.parseCol3(category_id, category_name, category_href)
-#             else:
-#                 self.parseCol4(category_id, category_name, category_href)
+                self.parseCol3(category_id, category_name, category_href)
+            else:
+                self.parseCol4(category_id, category_name, category_href)
+    
+    
+    #获取每一集的信息
+    def parseEpisodes(self):
+        print "parseEpisodes"  
+        
+        sources = db_video.query("select * from cv_video_detail_msg") 
+        for source in sources:
+            category_id = source['cv_category_id']  
+            video_id = source['cv_video_id'] 
+            video_name = source['cv_video_name']
+            video_href = source['cv_video_link']
+            if category_id in [2]:
+                print "+++++++++++++++++++++++++++++++++++++++++++"
+                print "grab : %s" % video_name  
+                print"++++++++++++++++++++++++++++++++++++++++++++"
                 
+                selector = load_content(video_href, method='GET')
+                episodes = selector.find("div", {"class":"box nBox"}).find("div", {"class":"linkpanel"}).findAll("a", {"data-from":True})
+                for episode in episodes:
+                    pass 
+            
+            
+             
+               
+               
+               
                 
     def parseCol3(self, category_id, category_name, category_href):
         print "parseCol3"
@@ -273,6 +299,7 @@ class youku_video_spider(Spider):
                 
                 #分集剧情，动态改变表的结构，不可取！
 #                 episodes = item_selector.find("div", {"class":"box nBox"}).find("div", {"class":"linkpanel"}).findAll("a", {"data-from":True}) 
+#                 self.parseEpisodes(category_id, category_name, video_id, video_name, episodes)
 #                 for episode in episodes:
 #                     episode_href = episode.attrs['href'] 
 #                     print "episode_href is : %s" % episode_href
@@ -307,8 +334,6 @@ class youku_video_spider(Spider):
                 
         pass
     
-    
-#     def parseEpisodes(self,):
     
     def parseCol4(self, category_id, category_name, category_href):
         
