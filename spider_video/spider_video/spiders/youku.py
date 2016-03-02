@@ -3,6 +3,7 @@ from scrapy.spiders import Spider
 
 from spider_video.conf.config import db_video
 from spider_video.utils.load_content import load_content
+from urllib import urlencode
 
 
 class youku_video_spider(Spider):
@@ -15,7 +16,7 @@ class youku_video_spider(Spider):
         print "parse"
         
 #         self.parse_category()
-        self.parse_item()
+#         self.parse_item()
         self.parseEpisodes()
         
     def parse_category(self):
@@ -70,22 +71,97 @@ class youku_video_spider(Spider):
             video_id = source['cv_video_id'] 
             video_name = source['cv_video_name']
             video_href = source['cv_video_link']
+            show_link = source['cv_show_link']
             if category_id in [2]:
+                print ""
                 print "+++++++++++++++++++++++++++++++++++++++++++"
                 print "grab : %s" % video_name  
                 print"++++++++++++++++++++++++++++++++++++++++++++"
+                print ""
                 
-                selector = load_content(video_href, method='GET')
-                episodes = selector.find("div", {"class":"box nBox"}).find("div", {"class":"linkpanel"}).findAll("a", {"data-from":True})
-                for episode in episodes:
-                    pass 
+                #准备url参数，以便获取分集加载的json资源链接
+                dt="json"
+                divid=''
+                rt=1
+                tab=0
+                ro="reload_point"
+                params = {"dt":dt, "tab_num":4, "rt":rt, "ro":ro}
+                reload_url = "http://www.youku.com/show_point_id_z" + str(video_id) + ".html?" + str(urlencode(params))
+                print "reload_url is : %s" % reload_url
+                
+                reload_selector = load_content(reload_url, method='GET', time_sleep=True)
+                seriesTabs = reload_selector.find("ul", {"id":"zySeriesTab"})
+                if seriesTabs is not None:
+                    point_reloads = seriesTabs.findAll("li", {"data":True})
+                    for point_reload in point_reloads:
+                        divid = point_reload.attrs['data']
+                        ro = point_reload.attrs['data']
+                        point_reload_params = {"dt":dt, "divid":divid, "tab":tab, "rt":rt, "ro":ro}
+                        
+                        point_reload_url = "http://www.youku.com/show_point/id_z" + str(video_id) + ".html?" + str(urlencode(point_reload_params))
+                        print "---------------------------------------------------"
+                        print "point_reload_url is : %s" % point_reload_url
+                        print "---------------------------------------------------"
+                        
+                        point_reload_selector = load_content(point_reload_url, method='GET', time_sleep=True)
+                        episodes = point_reload_selector.findAll("div", {"class":"item"})
+                        for episode in episodes:
+                            episode_href = episode.find("div", {"class":"link"}).find("a").attrs['href']
+                            episode_id = episode_href.split("id_")[-1].split(".html")[0]
+                            episode_title = episode.find("div", {"class":"title"}).find("a").get_text().strip()
+                            episode_img = episode.find("div", {"class":"thumb"}).find("img").attrs['src']
+                            duration_time = episode.find("div", {"class":"time"}).find("span", {"class":"num"}).get_text()
+                            played_count = int (episode.find("div", {"class":"stat"}).find("span", {"class":"num"}).get_text().replace(",", "").strip())
+                            episode_desc = episode.find("div", {"class":"desc"}).get_text().replace("\n", "").replace("\t", "").replace("\r", "").strip()
+                            print "episode_id is : %s" % episode_id
+                            print "episode_title is : %s" % episode_title
+                            print "episode_desc is : %s" % (episode_desc[:40])
+                            
+                            episode_querys = db_video.query("select * from cv_video_episodes where ve_episode_id = %s", episode_id)
+                            if len(episode_querys) == 0:
+                                db_video.insert("cv_video_episodes", ve_video_id=video_id, ve_video_name=video_name, ve_episode_id=episode_id,
+                                                 ve_episode_href=episode_href, ve_episode_title=episode_title, ve_episode_duration=duration_time,
+                                                 ve_episode_img=episode_img, ve_played_count=played_count, ve_episode_desc=episode_desc)
+                                print "insert successfully"
+                            else:
+                                print " %s already exist" %episode_title
+                                continue
+                            
+                        db_video.commit()
+                
+                else:
+                    episodes = reload_selector.findAll("div", {"class":"item"})
+                    for episode in episodes:
+                        if episode.find("div", {"class":"link"}) is None: continue
+                        episode_href = episode.find("div", {"class":"link"}).find("a").attrs['href']
+                        episode_id = episode_href.split("id_")[-1].split(".html")[0]
+                        episode_title = episode.find("div", {"class":"title"}).find("a").get_text().strip()
+                        episode_img = episode.find("div", {"class":"thumb"}).find("img").attrs['src']
+                        duration_time = episode.find("div", {"class":"time"}).find("span", {"class":"num"}).get_text()
+                        played_count = int (episode.find("div", {"class":"stat"}).find("span", {"class":"num"}).get_text().replace(",", "").strip())
+                        episode_desc = episode.find("div", {"class":"desc"}).get_text().replace("\n", "").replace("\t", "").replace("\r", "").strip()
+                        print "episode_id is : %s" % episode_id
+                        print "episode_title is : %s" % episode_title
+                        print "episode_desc is : %s" % (episode_desc[:40])
+                        
+                        episode_querys = db_video.query("select * from cv_video_episodes where ve_episode_id = %s", episode_id)
+                        if len(episode_querys) == 0:
+                            db_video.insert("cv_video_episodes", ve_video_id=video_id, ve_video_name=video_name, ve_episode_id=episode_id,
+                                             ve_episode_href=episode_href, ve_episode_title=episode_title, ve_episode_duration=duration_time,
+                                             ve_episode_img=episode_img, ve_played_count=played_count, ve_episode_desc=episode_desc)
+                            print "insert successfully"
+                        else:
+                            print " %s already exist" %episode_title
+                            continue
+                    db_video.commit()
+            
+            print "%s grab over" % video_name
+            
+        print "all videos grab over"
+        
+        pass 
             
             
-             
-               
-               
-               
-                
     def parseCol3(self, category_id, category_name, category_href):
         print "parseCol3"
         
