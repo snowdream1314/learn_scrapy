@@ -50,18 +50,20 @@ class youku_video_spider(Spider):
             category_href = source['c_href']
             print category_name
             
-#             if category_id == 2:
-#                 self.parseCol3(category_id, category_name, category_href)
+            if category_id == 4:
+                self.parseCol3(category_id, category_name, category_href, update)
+#             if category_id == 10:
+#                 self.parseCol4(category_id, category_name, category_href, update)
             #分为两类不同结构
-            if category_id in [2, 4, 6, 8, 12, 14]:
+#             if category_id in [2, 4, 6, 8, 12, 14]:
 #                 if category_id == 2: continue
 #                 if category_id == 4: continue
 #                 if category_id == 6: continue
 #                 if category_id == 8: continue
 #                 if category_id == 12: continue
-                self.parseCol3(category_id, category_name, category_href, update)
-            else:
-                self.parseCol4(category_id, category_name, category_href, update)
+#                 self.parseCol3(category_id, category_name, category_href, update)
+#             else:
+#                 self.parseCol4(category_id, category_name, category_href, update)
     
     
     #获取/更新电视剧集
@@ -71,16 +73,30 @@ class youku_video_spider(Spider):
         #是否更新
         if update:
             sources = db_video.query("select * from cv_video_detail_msg where cv_update_status=0")
+            print "%s videos need to update" % len(sources)
             print "start update"
         else:
             sources = db_video.query("select * from cv_video_detail_msg") 
-            
+        
+        #从上次停止的地方开始
+        last_eopisode = db_video.query("select * from cv_video_episodes order by ve_id DESC LIMIT 0,1")
+        last_video = db_video.query("select * from cv_video_detail_msg where cv_video_id=%s", last_eopisode[0]['ve_video_id'])
+        print "cv_id is : %s" % last_video[0]['cv_id']
+        print  ""
+        print "*****************************************************"
+        print "last video_name is : %s" % last_eopisode[0]['ve_video_name']
+        print "last video_id is : %s" % last_eopisode[0]['ve_video_id']
+        print "******************************************************"
+        print ""
+      
         for source in sources:
             category_id = source['cv_category_id']  
             video_id = source['cv_video_id'] 
             video_name = source['cv_video_name']
             video_href = source['cv_video_link']
             show_link = source['cv_show_link']
+            video_cv_id = source['cv_id']
+            if video_cv_id < last_video[0]['cv_id']: continue
             
             #爬取中断时调试，更新时不可用
 #             videos_query = db_video.query("select * from cv_video_episodes where ve_video_id = %s", video_id)
@@ -88,7 +104,7 @@ class youku_video_spider(Spider):
 #                 print "%s has grabed" % video_name
 #                 continue
             
-            if category_id in [2]:
+            if category_id in [6, 8, 12, 14]:
                 print ""
                 print "+++++++++++++++++++++++++++++++++++++++++++"
                 print "grab : %s" % video_name  
@@ -150,7 +166,7 @@ class youku_video_spider(Spider):
             episode_id = episode_href.split("id_")[-1].split(".html")[0]
             episode_title = episode.find("div", {"class":"title"}).find("a").get_text().strip()
             episode_img = episode.find("div", {"class":"thumb"}).find("img").attrs['src']
-            duration_time = episode.find("div", {"class":"time"}).find("span", {"class":"num"}).get_text()
+            duration_time = episode.find("div", {"class":"time"}).find("span", {"class":"num"}).get_text() if episode.find("div", {"class":"time"}).find("span", {"class":"num"}) is not None else None
             played_count = int (episode.find("div", {"class":"stat"}).find("span", {"class":"num"}).get_text().replace(",", "").strip())
             episode_desc = episode.find("div", {"class":"desc"}).get_text().replace("\n", "").replace("\t", "").replace("\r", "").strip()
             print "episode_id is : %s" % episode_id
@@ -188,25 +204,6 @@ class youku_video_spider(Spider):
                 print ''
                 print "++++++++++++++++++++++++++++++++++++++++++++++++++"
                 print ''
-                #图片链接
-#                 img_link = list.find("div", {"class":"p-thumb"}).find("img").attrs['src']
-                 
-                #主角
-#                 if list.find("span", {"class":"p-actor"}):
-#                     actor_def = list.find("span", {"class":"p-actor"})
-#                     actor = actor_def.find("label").get_text().strip() + actor_def.find("a").get_text().strip()
-#                     actor_link = actor_def.find("a").attrs['href']
-#                 else:
-#                     actor = ''
-#                     actor_link = ''
-#                 print actor
-                  
-                #资源标示
-#                 item_id = item_link.split('_')[-1].split('.')[0]
-#                 print "Grab item %s:" % item_id
- 
-                #更新情况
-#                 update_status = list.find("div", {"class":"p-thumb-taglb"}).find("span", {"class":"p-status"}).get_text().strip()
  
                 #特别标签，如“会员免费”
                 if list.find("div", {"class":"p-thumb-tagrt"}) is not None and list.find("div", {"class":"p-thumb-tagrt"}).find("span", {"class":"sub-txt"}) is not None:
@@ -219,13 +216,24 @@ class youku_video_spider(Spider):
                 print "---------------------------------"
                 print video_name
                 print "----------------------------------" 
-                print ''   
-                #评分
-                video_rating = int (list.find("div", {"class":"p-thumb-tagrb"}).find("span", {"class":"p-rating"}).get_text().replace(".", "").strip())
+                print ''  
                  
+                #评分
+                video_rating = list.find("div", {"class":"p-thumb-tagrb"}).find("span", {"class":"p-rating"}).get_text().replace(".", "").strip()
+                if video_rating == '':
+                    video_rating = 0
+                else:
+                    video_rating = int(video_rating)
+                    
                 #资源链接
                 video_link = list.find("div", {"class":"p-link"}).find("a").attrs['href']
                 video_id = video_link.split("id_z")[-1].split(".")[0]
+                
+                #判断是否已经爬取过
+                videos = db_video.query("select * from cv_video_detail_msg_copy where cv_video_id=%s", video_id)
+                if len(videos) != 0 : 
+                    print "%s already exist" %video_name
+                    continue
                  
                 item_selector = load_content(video_link, method='GET', time_sleep=True, referer=category_href)
                 if item_selector is None: return
@@ -362,6 +370,14 @@ class youku_video_spider(Spider):
                     update_status = 0
                 else:
                     update_status = 1
+                
+                if category_id == 4:
+                    update_schedule = list.find("div", {"class":"p-thumb-taglb"}).find("span", {"class":"p-status"}).get_text()
+                    if u"预告" in update_schedule:
+                        update_status = 0
+                    else:
+                        update_status = 1
+                        
 #                 if len(update_schedule) > 10:
 #                     update_status = 0
 #                 else:
@@ -392,7 +408,6 @@ class youku_video_spider(Spider):
 #                     print "update cv_video_detail_msg set episode%s=%s where cv_video_id=%s" %(episode_text, episode_href, video_id)
 #                     db_video.execute("update cv_video_detail_msg set episode1=%s where cv_video_id=%s", episode_href, video_id)
                     
-#                 videos = db_video.query("select * from cv_video_album where va_video_id=%s", item_id)
                 videos = db_video.query("select * from cv_video_detail_msg_copy where cv_video_id=%s", video_id)
                 if len(videos) == 0:
                     
@@ -426,7 +441,7 @@ class youku_video_spider(Spider):
         pass
     
     
-    def parseCol4(self, category_id, category_name, category_href):
+    def parseCol4(self, category_id, category_name, category_href, update=False):
         
         print "parseCol4"
         
@@ -478,7 +493,7 @@ class youku_video_spider(Spider):
                 video_name = v_meta.find("div", {"class":"v-meta-title"}).find("a").get_text()
                 print "video_name is : %s" % video_name
                 
-                item_selector = load_content(show_link, method='GET', time_sleep=True)
+                item_selector = load_content(show_link, method='GET', time_sleep=True, host="v.youku.com")
                 if item_selector is None: return
                 
                 #视频支持数
@@ -487,7 +502,7 @@ class youku_video_spider(Spider):
                 
                 #视频评论数和播放总数
                 comment_num = item_selector.find("div", {"class":"fn-wrap"}).find("a", {"id":"video_comment_number"}).attrs['title']
-                played_count = item_selector.find("div", {"class":"fn-wrap"}).find("span", {"id":"videoTotalPV"}).get_text().replace(u"播放", "").strip()
+                played_count = item_selector.find("div", {"class":"fn-wrap"}).find("span", {"id":"videoTotalPV"}).find("em", {"class":"num"}).get_text().replace(",", "").strip()
                 print "comment_num is : %s" % comment_num
                 print "played_count is : %s" % played_count
                 
