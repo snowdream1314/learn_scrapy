@@ -19,8 +19,8 @@ class youku_video_spider(Spider):
         print "parse"
         
 #         self.parse_category()
-#         self.parse_item(self.update)
-        self.parseEpisodes(self.update)
+        self.parse_item(self.update)
+#         self.parseEpisodes(self.update)
         
     def parse_category(self):
         print "parse_category"
@@ -50,7 +50,7 @@ class youku_video_spider(Spider):
             category_href = source['c_href']
             print category_name
             
-            if category_id == 4:
+            if category_id == 12:
                 self.parseCol3(category_id, category_name, category_href, update)
 #             if category_id == 10:
 #                 self.parseCol4(category_id, category_name, category_href, update)
@@ -96,7 +96,7 @@ class youku_video_spider(Spider):
             video_href = source['cv_video_link']
             show_link = source['cv_show_link']
             video_cv_id = source['cv_id']
-            if video_cv_id < last_video[0]['cv_id']: continue
+            if video_cv_id < last_video[0]['cv_id']: continue   #从上次停止的地方开始
             
             #爬取中断时调试，更新时不可用
 #             videos_query = db_video.query("select * from cv_video_episodes where ve_video_id = %s", video_id)
@@ -167,7 +167,13 @@ class youku_video_spider(Spider):
             episode_title = episode.find("div", {"class":"title"}).find("a").get_text().strip()
             episode_img = episode.find("div", {"class":"thumb"}).find("img").attrs['src']
             duration_time = episode.find("div", {"class":"time"}).find("span", {"class":"num"}).get_text() if episode.find("div", {"class":"time"}).find("span", {"class":"num"}) is not None else None
-            played_count = int (episode.find("div", {"class":"stat"}).find("span", {"class":"num"}).get_text().replace(",", "").strip())
+            
+            played_count = episode.find("div", {"class":"stat"}).find("span", {"class":"num"}).get_text().replace(",", "").strip() if episode.find("div", {"class":"stat"}) is not None else None
+            if played_count is None:
+                played_count = 0
+            else:
+                played_count = int (played_count)
+                
             episode_desc = episode.find("div", {"class":"desc"}).get_text().replace("\n", "").replace("\t", "").replace("\r", "").strip()
             print "episode_id is : %s" % episode_id
             print "episode_title is : %s" % episode_title
@@ -230,10 +236,11 @@ class youku_video_spider(Spider):
                 video_id = video_link.split("id_z")[-1].split(".")[0]
                 
                 #判断是否已经爬取过
-                videos = db_video.query("select * from cv_video_detail_msg_copy where cv_video_id=%s", video_id)
-                if len(videos) != 0 : 
-                    print "%s already exist" %video_name
-                    continue
+                if not update:
+                    videos = db_video.query("select * from cv_video_detail_msg_copy where cv_video_id=%s", video_id)
+                    if len(videos) != 0 : 
+                        print "%s already exist" %video_name
+                        continue
                  
                 item_selector = load_content(video_link, method='GET', time_sleep=True, referer=category_href)
                 if item_selector is None: return
@@ -446,9 +453,10 @@ class youku_video_spider(Spider):
         print "parseCol4"
         
         source_url = category_href
-        print source_url
         
         while 1:
+            
+            print source_url
             
             selector = load_content(category_href, method='GET')
             if selector is None: return
@@ -502,8 +510,8 @@ class youku_video_spider(Spider):
                 
                 #视频评论数和播放总数
                 comment_num = item_selector.find("div", {"class":"fn-wrap"}).find("a", {"id":"video_comment_number"}).attrs['title']
-                played_count = item_selector.find("div", {"class":"fn-wrap"}).find("span", {"id":"videoTotalPV"}).find("em", {"class":"num"}).get_text().replace(",", "").strip()
                 print "comment_num is : %s" % comment_num
+                played_count = item_selector.find("div", {"class":"fn-wrap"}).find("span", {"id":"videoTotalPV"}).find("em", {"class":"num"}).get_text().replace(",", "").strip()
                 print "played_count is : %s" % played_count
                 
                 videos = db_video.query("select * from cv_video_detail_msg where cv_video_id=%s", video_id)
@@ -516,7 +524,7 @@ class youku_video_spider(Spider):
                     print "video already exists"
                     continue
                 
-            db_video.commit()
+#             db_video.commit()
             
             next_page = selector.find("div", {"class":"yk-pager"}).find("li", {"class":"next"}).find("a")
             if next_page:
