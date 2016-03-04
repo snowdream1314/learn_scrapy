@@ -24,7 +24,7 @@ class youku_video_spider(Spider):
         
 #         self.parse_category()
         self.parse_item(self.update)
-#         self.parseEpisodes(self.update)
+        self.parseEpisodes(self.update)
         
     def parse_category(self):
         print "parse_category"
@@ -56,16 +56,16 @@ class youku_video_spider(Spider):
             
 #             if category_id == 14:
 #                 self.parseCol3(category_id, category_name, category_href, update)
-            if category_id == 10:
-                self.parseCol4(category_id, category_name, category_href, update)
+#             if category_id == 10:
+#                 self.parseCol4(category_id, category_name, category_href, update)
             #分为两类不同结构
-#             if category_id in [2, 4, 6, 8, 12, 14]:
+            if category_id in [2, 4, 6, 8, 12, 14]:
 #                 if category_id == 2: continue
 #                 if category_id == 4: continue
 #                 if category_id == 6: continue
 #                 if category_id == 8: continue
 #                 if category_id == 12: continue
-#                 self.parseCol3(category_id, category_name, category_href, update)
+                self.parseCol3(category_id, category_name, category_href, update)
 #             else:
 #                 self.parseCol4(category_id, category_name, category_href, update)
     
@@ -463,6 +463,7 @@ class youku_video_spider(Spider):
         source_url = category_href
         
         #开启selenium工具，以便后续获取动态数据
+        web_driver = webdriver.PhantomJS(executable_path='/data/samba/phantomjs.exe', service_args=['--ssl-protocol=any',])
 #         web_driver = webdriver.Chrome()
         
         while 1:
@@ -514,14 +515,15 @@ class youku_video_spider(Spider):
                 
                 #获取动态的数据：评论数、支持数、播放数
 #                 web_driver = webdriver.Chrome()
-                web_driver = webdriver.Firefox()
+#                 web_driver = webdriver.PhantomJS(executable_path='C:/usr/local/lib/python2.7/dist-packages/selenium/webdriver/phantomjs.exe')
+#                 web_driver = webdriver.PhantomJS(executable_path='/data/samba/phantomjs.exe', service_args=['--ssl-protocol=any',])
                 print "web_driver"
                 #调用浏览器加载页面
                 web_driver.get(show_link)
                 #等待，直到评论数加载完毕
                 WebDriverWait(web_driver,10).until(lambda the_driver: the_driver.find_element_by_id("video_comment_number").get_attribute('title') != '')
                 page_soup = BeautifulSoup(web_driver.page_source)
-                web_driver.quit()
+#                 web_driver.quit()
                 
                 comment_num = int (page_soup.find("a", {"id":"video_comment_number"}).attrs['title'])
                 support_num = int (page_soup.find("div", {"class":"fn-updown"}).find("div", {"class":"fn-up"}).find("span", {"class":"num"}).get_text().strip())
@@ -563,7 +565,7 @@ class youku_video_spider(Spider):
                 print "crawled over,category_id is : %s" % category_id
                 return
             
-#         web_driver.quit()
+        web_driver.quit()
                 
         pass
                 
