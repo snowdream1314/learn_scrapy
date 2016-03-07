@@ -4,7 +4,7 @@ from urllib import urlencode
 from scrapy.spiders import Spider
 from selenium import webdriver
 
-from spider_video.conf.config import db_video
+from spider_video.conf.config import db_video, redisdb
 from spider_video.utils.load_content import load_content
 from selenium.webdriver.support.wait import WebDriverWait
 from bs4 import BeautifulSoup
@@ -24,7 +24,7 @@ class youku_video_spider(Spider):
         
 #         self.parse_category()
         self.parse_item(self.update)
-        self.parseEpisodes(self.update)
+#         self.parseEpisodes(self.update)
         
     def parse_category(self):
         print "parse_category"
@@ -56,16 +56,16 @@ class youku_video_spider(Spider):
             
 #             if category_id == 14:
 #                 self.parseCol3(category_id, category_name, category_href, update)
-#             if category_id == 10:
-#                 self.parseCol4(category_id, category_name, category_href, update)
+            if category_id == 24:
+                self.parseCol4(category_id, category_name, category_href, update)
             #分为两类不同结构
-            if category_id in [2, 4, 6, 8, 12, 14]:
+#             if category_id in [2, 4, 6, 8, 12, 14]:
 #                 if category_id == 2: continue
 #                 if category_id == 4: continue
 #                 if category_id == 6: continue
 #                 if category_id == 8: continue
 #                 if category_id == 12: continue
-                self.parseCol3(category_id, category_name, category_href, update)
+#                 self.parseCol3(category_id, category_name, category_href, update)
 #             else:
 #                 self.parseCol4(category_id, category_name, category_href, update)
     
@@ -460,21 +460,31 @@ class youku_video_spider(Spider):
         
         print "parseCol4"
         
-        source_url = category_href
+#         source_url = category_href
         
-        #开启selenium工具，以便后续获取动态数据
-        web_driver = webdriver.PhantomJS(executable_path='/data/samba/phantomjs.exe', service_args=['--ssl-protocol=any',])
+        #开启selenium工具，以便后续获取动态数据,服务器上不可用？
+#         web_driver = webdriver.PhantomJS(executable_path='/data/samba/phantomjs.exe', service_args=['--ssl-protocol=any',])
 #         web_driver = webdriver.Chrome()
         
+        if category_id == 10:
+            source_url = category_href.split('.html')[0] + "_s_1_d_4" + ".html"
+        else:
+            source_url = category_href.split('.html')[0] + "d4s1" + ".html"
+            
         while 1:
-            
+            print ""
+            print "--------------------------------------------"
             print source_url
+            print "--------------------------------------------"
+            print ""
             
-            selector = load_content(category_href, method='GET')
+            selector = load_content(source_url, method='GET')
             if selector is None: return
             
             lists = selector.findAll("div", {"class":"yk-col4"})
             for list in lists:
+                print ""
+                print "++++++++++++++++++++++++++++++"
                 v_thumb = list.find("div", {"class":"v"}).find("div", {"class":"v-thumb"})
                 v_link = list.find("div", {"class":"v"}).find("div", {"class":"v-link"})
                 v_meta = list.find("div", {"class":"v"}).find("div", {"class":"v-meta va"})
@@ -513,49 +523,64 @@ class youku_video_spider(Spider):
                 video_name = v_meta.find("div", {"class":"v-meta-title"}).find("a").get_text()
                 print "video_name is : %s" % video_name
                 
+                #判断是否已经爬取过
+                if not update:
+                    videos = db_video.query("select * from cv_video_detail_msg_copy where cv_video_id=%s", video_id)
+                    if len(videos) != 0 : 
+                        print "%s already exist" %video_name
+                        continue 
+                
+                #播放总数
+#                 print v_meta
+                played_count = v_meta.find("div", {"class":"v-meta-entry"}).find("span", {"class":"v-num"}).get_text().replace(",", "")
+                if u'亿' in played_count:
+                    played_count =  int (float (played_count.replace(u"亿", "")) * 100000000)
+                elif u'万' in played_count:
+                    played_count = int (float (played_count.replace(u"万", "")) * 10000)
+                    
                 #获取动态的数据：评论数、支持数、播放数
 #                 web_driver = webdriver.Chrome()
 #                 web_driver = webdriver.PhantomJS(executable_path='C:/usr/local/lib/python2.7/dist-packages/selenium/webdriver/phantomjs.exe')
 #                 web_driver = webdriver.PhantomJS(executable_path='/data/samba/phantomjs.exe', service_args=['--ssl-protocol=any',])
-                print "web_driver"
+#                 print "web_driver"
                 #调用浏览器加载页面
-                web_driver.get(show_link)
+#                 web_driver.get(show_link)
                 #等待，直到评论数加载完毕
-                WebDriverWait(web_driver,10).until(lambda the_driver: the_driver.find_element_by_id("video_comment_number").get_attribute('title') != '')
-                page_soup = BeautifulSoup(web_driver.page_source)
+#                 WebDriverWait(web_driver,10).until(lambda the_driver: the_driver.find_element_by_id("video_comment_number").get_attribute('title') != '')
+#                 page_soup = BeautifulSoup(web_driver.page_source)
 #                 web_driver.quit()
                 
-                comment_num = int (page_soup.find("a", {"id":"video_comment_number"}).attrs['title'])
-                support_num = int (page_soup.find("div", {"class":"fn-updown"}).find("div", {"class":"fn-up"}).find("span", {"class":"num"}).get_text().strip())
-                played_num = page_soup.find("div", {"class":"fn-wrap"}).find("span", {"id":"videoTotalPV"}).get_text().replace(u"播放", "").replace(".", "").replace(",", "").strip()
-                if u"万" in played_num:
-                    played_count = int (played_num.replace(u"万", "")) * 10000
-                else:
-                    played_count = int (played_num) 
-#                 item_selector = load_content(show_link, method='GET', time_sleep=True, host="v.youku.com")
-#                 if item_selector is None: return
+#                 comment_num = int (page_soup.find("a", {"id":"video_comment_number"}).attrs['title'])
+#                 support_num = int (page_soup.find("div", {"class":"fn-updown"}).find("div", {"class":"fn-up"}).find("span", {"class":"num"}).get_text().strip())
+#                 played_num = page_soup.find("div", {"class":"fn-wrap"}).find("span", {"id":"videoTotalPV"}).get_text().replace(u"播放", "").replace(",", "").strip()
+#                 if u"万" in played_num:
+#                     played_count = int (played_num.replace(u"万", "")) * 10000
+#                 else:
+#                     played_count = int (played_num) 
+                item_selector = load_content(show_link, method='GET', time_sleep=True, host="v.youku.com")
+                if item_selector is None: return
                 
                 #视频支持数
-#                 support_num = item_selector.find("div", {"class":"fn-updown"}).find("div", {"class":"fn-up"}).find("span", {"class":"num"}).get_text().strip()
+                support_num = int (item_selector.find("div", {"class":"fn-updown"}).find("div", {"class":"fn-up"}).find("span", {"class":"num"}).get_text().replace(",", "").strip())
                 
-                #视频评论数和播放总数,数据动态加载，无法获取
+                #视频评论数,数据动态加载，无法获取
 #                 comment_num = item_selector.find("div", {"class":"fn-wrap"}).find("a", {"id":"video_comment_number"}).attrs['title']
 #                 played_count = item_selector.find("div", {"class":"fn-wrap"}).find("span", {"id":"videoTotalPV"}).find("em", {"class":"num"}).get_text().replace(",", "").strip()
                 print "support_num is : %s" % support_num
-                print "comment_num is : %s" % comment_num
+#                 print "comment_num is : %s" % comment_num
                 print "played_count is : %s" % played_count
                 
-                videos = db_video.query("select * from cv_video_detail_msg where cv_video_id=%s", video_id)
+                videos = db_video.query("select * from cv_video_detail_msg_copy where cv_video_id=%s", video_id)
                 if len(videos) == 0:  
-                    db_video.insert("cv_video_detail_msg", cv_category_id=category_id, cv_video_name=video_name, cv_video_id=video_id, cv_played_count=played_count, 
-                                    cv_video_actors=video_actors, cv_comment_num=comment_num, cv_support_num=support_num, cv_video_img=img_link, cv_video_auth="free",
-                                    cv_show_link=show_link, cv_video_duration=video_duration)
+                    db_video.insert("cv_video_detail_msg_copy", cv_category_id=category_id, cv_video_name=video_name, cv_video_id=video_id, cv_played_count=played_count, 
+                                    cv_video_actors=video_actors, cv_support_num=support_num, cv_video_img=img_link, cv_video_auth="free",
+                                    cv_show_link=show_link, cv_video_duration=video_duration, cv_video_quality=video_quality, cv_video_type=category_name)
                     print "insert successfully"
                 else:
                     print "video already exists"
                     continue
                 
-#             db_video.commit()
+            db_video.commit()
             
             next_page = selector.find("div", {"class":"yk-pager"}).find("li", {"class":"next"}).find("a")
             if next_page:
@@ -565,7 +590,7 @@ class youku_video_spider(Spider):
                 print "crawled over,category_id is : %s" % category_id
                 return
             
-        web_driver.quit()
+#         web_driver.quit()
                 
         pass
                 
