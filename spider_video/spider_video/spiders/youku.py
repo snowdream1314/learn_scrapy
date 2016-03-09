@@ -22,10 +22,19 @@ class youku_video_spider(Spider):
     def parse(self, response):
         print "parse"
         
+
 #         self.parse_category()
         self.parse_item(self.update)
-#         self.parseEpisodes(self.update)
+        self.parseEpisodes(self.update)
         
+        #更新不符合的数据
+#         sources = db_video.query("select * from cv_video_album ")
+#         for source in sources:ba
+#             if source['cv_video_quality'] is not None and len(source['cv_video_quality']) > 8:
+#                 print source['cv_video_quality']
+#                 db_video.execute("update cv_video_album set cv_video_quality='' where cv_video_id=%s", source['cv_video_id'])
+#         db_video.commit()
+
     def parse_category(self):
         print "parse_category"
         
@@ -56,18 +65,18 @@ class youku_video_spider(Spider):
             
 #             if category_id == 14:
 #                 self.parseCol3(category_id, category_name, category_href, update)
-            if category_id == 24:
-                self.parseCol4(category_id, category_name, category_href, update)
+#             if category_id == 46:
+#                 self.parseCol4(category_id, category_name, category_href, update)
             #分为两类不同结构
-#             if category_id in [2, 4, 6, 8, 12, 14]:
+            if category_id in [2, 4, 6, 8, 12, 14]:
 #                 if category_id == 2: continue
 #                 if category_id == 4: continue
 #                 if category_id == 6: continue
 #                 if category_id == 8: continue
 #                 if category_id == 12: continue
-#                 self.parseCol3(category_id, category_name, category_href, update)
-#             else:
-#                 self.parseCol4(category_id, category_name, category_href, update)
+                self.parseCol3(category_id, category_name, category_href, update)
+            else:
+                self.parseCol4(category_id, category_name, category_href, update)
     
     
     #获取/更新电视剧集
@@ -76,15 +85,15 @@ class youku_video_spider(Spider):
         
         #是否更新
         if update:
-            sources = db_video.query("select * from cv_video_detail_msg_copy where cv_update_status=0")
+            sources = db_video.query("select * from cv_video_album where cv_update_status=0")
             print "%s videos need to update" % len(sources)
             print "start update"
         else:
-            sources = db_video.query("select * from cv_video_detail_msg_copy") 
+            sources = db_video.query("select * from cv_video_album") 
         
         #从上次停止的地方开始
         last_eopisode = db_video.query("select * from cv_video_episodes order by ve_id DESC LIMIT 0,1")
-        last_video = db_video.query("select * from cv_video_detail_msg_copy where cv_video_id=%s", last_eopisode[0]['ve_video_id'])
+        last_video = db_video.query("select * from cv_video_album where cv_video_id=%s", last_eopisode[0]['ve_video_id'])
         print "cv_id is : %s" % last_video[0]['cv_id']
         print  ""
         print "*****************************************************"
@@ -246,7 +255,7 @@ class youku_video_spider(Spider):
                 
                 #判断是否已经爬取过
                 if not update:
-                    videos = db_video.query("select * from cv_video_detail_msg_copy where cv_video_id=%s", video_id)
+                    videos = db_video.query("select * from cv_video_album where cv_video_id=%s", video_id)
                     if len(videos) != 0 : 
                         print "%s already exist" %video_name
                         continue
@@ -424,9 +433,9 @@ class youku_video_spider(Spider):
 #                     print "update cv_video_detail_msg set episode%s=%s where cv_video_id=%s" %(episode_text, episode_href, video_id)
 #                     db_video.execute("update cv_video_detail_msg set episode1=%s where cv_video_id=%s", episode_href, video_id)
                     
-                videos = db_video.query("select * from cv_video_detail_msg_copy where cv_video_id=%s", video_id)
+                videos = db_video.query("select * from cv_video_album where cv_video_id=%s", video_id)
                 if len(videos) == 0:
-                    db_video.insert("cv_video_detail_msg_copy", cv_category_id=category_id, cv_video_name=video_name, cv_video_id=video_id, cv_played_count=played_count, cv_video_desc=video_desc,
+                    db_video.insert("cv_video_album", cv_category_id=category_id, cv_video_name=video_name, cv_video_id=video_id, cv_played_count=played_count, cv_video_desc=video_desc,
                                     cv_video_link=video_link, cv_video_rate=video_rating, cv_video_alias=video_alias, cv_video_area=video_area, cv_video_type=video_type, cv_video_director=video_director,
                                     cv_video_actors=video_actors, cv_comment_num=comment_num, cv_support_num=support_num, cv_update_schedule=update_schedule, cv_video_img=img_link, cv_video_auth=authority,
                                     cv_show_link=show_link, cv_douban_rate=score_db, cv_update_status=update_status, cv_video_duration=video_duration, cv_video_TV=video_TV, cv_video_agefor=video_agefor,
@@ -436,7 +445,7 @@ class youku_video_spider(Spider):
                 else:
                     #更新每一部电视剧的信息
                     if update:
-                        db_video.execute("update cv_video_detail_msg_copy set cv_played_count=%s, cv_video_rate=%s, cv_comment_num=%s, cv_support_num=%s, \
+                        db_video.execute("update cv_video_album set cv_played_count=%s, cv_video_rate=%s, cv_comment_num=%s, cv_support_num=%s, \
                                         cv_update_schedule=%s, cv_update_status=%s where cv_video_id=%s", played_count, video_rating, comment_num, support_num, update_schedule, update_status, video_id)
                         print " %s update successfully" % video_name
                     else:
@@ -445,7 +454,7 @@ class youku_video_spider(Spider):
                  
             db_video.commit()
              
-            next_page = selector.find("div", {"class":"yk-pager"}).find("li", {"class":"next"}).find("a")
+            next_page = selector.find("li", {"class":"next"}).find("a")
             if next_page:
                 next_link = next_page.attrs['href']
                 source_url = "http://www.youku.com" + str(next_link)
@@ -493,10 +502,12 @@ class youku_video_spider(Spider):
                 img_link = v_thumb.find("img").attrs['src']
                 
                 #视频质量
-                video_quality = v_thumb.find("div", {"class":"v-thumb-tagrt"}).find("i")
-                if video_quality is not None:
-                    video_quality = video_quality.attrs['title']
-                    print "video_quality is : %s" % video_quality
+                video_quality = v_thumb.find("div", {"class":"v-thumb-tagrt"})
+                if video_quality is not None and video_quality.find("i") is not None:
+                    video_quality = video_quality.find("i").attrs['title']
+                else:
+                    video_quality = ''
+                print "video_quality is : %s" % video_quality
                     
                 #视频时长
                 video_duration = v_thumb.find("div", {"class":"v-thumb-tagrb"}).find("span", {"class":"v-time"})
@@ -520,12 +531,12 @@ class youku_video_spider(Spider):
                 print "video_id is : %s" %video_id
                 
                 #视频标题
-                video_name = v_meta.find("div", {"class":"v-meta-title"}).find("a").get_text()
+                video_name = v_meta.find("div", {"class":"v-meta-title"}).find("a").get_text().replace(u"☺️", "").replace(u"😰", "").replace(u"💝", "").replace(u"🐽", "").replace(u"💄", "").replace(u"💞", "").replace(u"👍", "").replace(u"🌸", "").replace(u"🔥", "").replace(u"🎵", "").replace(u"😓", "").replace(u"💪", "").replace(u"🍰", "")
                 print "video_name is : %s" % video_name
                 
                 #判断是否已经爬取过
                 if not update:
-                    videos = db_video.query("select * from cv_video_detail_msg_copy where cv_video_id=%s", video_id)
+                    videos = db_video.query("select * from cv_video_album where cv_video_id=%s", video_id)
                     if len(videos) != 0 : 
                         print "%s already exist" %video_name
                         continue 
@@ -558,7 +569,7 @@ class youku_video_spider(Spider):
 #                 else:
 #                     played_count = int (played_num) 
                 item_selector = load_content(show_link, method='GET', time_sleep=True, host="v.youku.com")
-                if item_selector is None: return
+                if item_selector is None: continue
                 
                 #视频支持数
                 support_num = int (item_selector.find("div", {"class":"fn-updown"}).find("div", {"class":"fn-up"}).find("span", {"class":"num"}).get_text().replace(",", "").strip())
@@ -570,19 +581,24 @@ class youku_video_spider(Spider):
 #                 print "comment_num is : %s" % comment_num
                 print "played_count is : %s" % played_count
                 
-                videos = db_video.query("select * from cv_video_detail_msg_copy where cv_video_id=%s", video_id)
+                videos = db_video.query("select * from cv_video_album where cv_video_id=%s", video_id)
                 if len(videos) == 0:  
-                    db_video.insert("cv_video_detail_msg_copy", cv_category_id=category_id, cv_video_name=video_name, cv_video_id=video_id, cv_played_count=played_count, 
+                    db_video.insert("cv_video_album", cv_category_id=category_id, cv_video_name=video_name, cv_video_id=video_id, cv_played_count=played_count, 
                                     cv_video_actors=video_actors, cv_support_num=support_num, cv_video_img=img_link, cv_video_auth="free",
                                     cv_show_link=show_link, cv_video_duration=video_duration, cv_video_quality=video_quality, cv_video_type=category_name)
                     print "insert successfully"
                 else:
-                    print "video already exists"
-                    continue
+                    #更新每一部电视剧的信息
+                    if update:
+                        db_video.execute("update cv_video_album set cv_played_count=%s, cv_support_num=%s where cv_video_id=%s", played_count, support_num, video_id)
+                        print " %s update successfully" % video_name
+                    else:
+                        print "video already exists"
+                        continue
                 
             db_video.commit()
             
-            next_page = selector.find("div", {"class":"yk-pager"}).find("li", {"class":"next"}).find("a")
+            next_page = selector.find("li", {"class":"next"}).find("a")
             if next_page:
                 next_link = next_page.attrs['href']
                 source_url = "http://www.youku.com" + str(next_link)
