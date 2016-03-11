@@ -14,11 +14,13 @@ BOT_NAME = 'smzdm_crawler'
 SPIDER_MODULES = ['smzdm_crawler.spiders']
 NEWSPIDER_MODULE = 'smzdm_crawler.spiders'
 
-MONGODB_HOST = "localhost"
+# MONGODB_HOST = "localhost"
+MONGODB_HOST = "192.168.1.200"
 MONGODB_PORT = 27017
 MONGODB_DB = "smzdm"
 
-REDIS_HOST = "localhost"
+# REDIS_HOST = "localhost"
+REDIS_HOST = "192.168.1.200"
 REDIS_PORT = 6379
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
