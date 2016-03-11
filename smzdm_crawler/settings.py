@@ -72,6 +72,10 @@ ITEM_PIPELINES = {
     'smzdm_crawler.pipelines.db_pipeline.SmzdmCrawlerPipeline': 300,
 }
 
+SCHEDULER = "smzdm_crawler.scrapy_redis.redis_scheduler.Scheduler"
+SCHEDULER_PERSIST = True
+SCHEDULER_QUEUE_CLASS = "smzdm_crawler.scrapy_redis.queue.SpiderPriorityQueue"
+
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See http://doc.scrapy.org/en/latest/topics/autothrottle.html
 # NOTE: AutoThrottle will honour the standard settings for concurrency and delay

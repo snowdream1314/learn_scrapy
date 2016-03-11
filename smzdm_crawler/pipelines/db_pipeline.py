@@ -48,6 +48,10 @@ class SmzdmCrawlerPipeline(object):
 #             print len(self.ids_seen)
             self.server.sadd(self.redis_key, item['id'])
             self.db[collection_name].insert(dict(item))
+            print "---------------------------------"
+            print "insert successfully"
+            print "---------------------------------"
+            print ""
         
             return item
 
